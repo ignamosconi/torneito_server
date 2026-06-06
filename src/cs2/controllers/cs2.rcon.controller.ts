@@ -59,35 +59,37 @@ export class Cs2Controller {
   @Post('events')
   @HttpCode(HttpStatus.OK)
   async handleMatchEvents(@Body() eventData: any, @Headers('authorization') authHeader: string) {
-    // Validación de seguridad simple con el token inyectado por RCON
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Falta el token de autorización o es inválido');
     }
     
-    const { event, matchid } = eventData;
-    const gamePort = eventData.port || 27015; // Usamos el puerto que venga, o 27015 por defecto
+    const { event, matchid: matchidNumerico } = eventData;
+    const gamePort = eventData.port || 27015;
 
-    // Imprimimos CADA evento que llegue para debugar en vivo en la consola
-    this.logger.log(`[Webhook MatchZy] Evento recibido: "${event}" para MatchID: ${matchid}`);
+    // Traducimos el matchid numérico (8093) al matchId string ("SERIE_BO3_IGNA_02")
+    const matchId = this.cs2LifecycleService.obtenerMatchIdPlataforma(matchidNumerico) || matchidNumerico.toString();
 
+    this.logger.log(`[Webhook MatchZy] Evento recibido: "${event}" para MatchID: ${matchId} (Numérico: ${matchidNumerico})`);
 
     // CASO 1: Terminó la serie completa
     if (event === 'series_end') {
-      console.log(`--- [EVENTO] SERIE FINALIZADA (MatchID: ${matchid}) ---`);
-      this.cs2LifecycleService.marcarSerieTerminada(matchid);
+      console.log(`--- [EVENTO] SERIE FINALIZADA (MatchID: ${matchId}) ---`);
+      // Guardamos el estado usando el numérico o el string, pero el service ahora espera el numérico para el Set
+      this.cs2LifecycleService.marcarSerieTerminada(matchidNumerico);
     }
 
     // CASO 2: La demo terminó de grabarse en disco
     if (event === 'demo_recording_stop') {
-      console.log(`--- [EVENTO] DEMO GRABADA EN DISCO (MatchID: ${matchid}) ---`);
+      console.log(`--- [EVENTO] DEMO GRABADA EN DISCO (MatchID: ${matchId}) ---`);
       
-      // Validamos si la serie ya había terminado previamente
-      if (this.cs2LifecycleService.debeApagarServidor(matchid)) {
+      // Validamos si la serie ya había terminado previamente (pasándole el id numérico)
+      if (this.cs2LifecycleService.debeApagarServidor(matchidNumerico)) {
         console.log(`[Webhook] La serie ya terminó y la demo está guardada. Mandando 'quit' vía RCON al puerto ${gamePort}...`);
         
-        // Le damos un delay ínfimo de 1 segundo para asegurarnos de que el hilo de MatchZy
-        // complete el ciclo de cerrado del archivo antes de desconectarse
         setTimeout(async () => {
+          this.cs2LifecycleService.borrarConfiguracion(matchId);
+          this.cs2LifecycleService.borrarBackupsPartido(matchidNumerico, matchId);
+          this.cs2LifecycleService.removerMapeoId(matchidNumerico);
           await this.rconService.executeCommand('quit', gamePort);
         }, 1000);
       } else {
