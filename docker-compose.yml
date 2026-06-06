@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: cs2_tournament_backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    # El servidor de CS2 está en el HOST, no en el docker.
+    # network_mode host permite que el contenedor llegue a 127.0.0.1 del host (donde vive el servidor CS2).
+    network_mode: host
+    restart: unless-stopped
