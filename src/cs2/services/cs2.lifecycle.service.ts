@@ -20,6 +20,7 @@ export class Cs2LifecycleService {
   // Guardamos en memoria los matchid que ya enviaron el evento de cierre de serie
   private seriesFinalizadas = new Set<number>();
   private matchIdMap = new Map<number, string>(); // matchid numérico → matchId string
+  private matchPortMap = new Map<number, number>(); // matchid numérico → puerto
 
   /**
    * Registra que la serie llegó a su fin (ej: el 2-0 del BO3)
@@ -46,6 +47,11 @@ export class Cs2LifecycleService {
 
   removerMapeoId(matchidNumerico: number): void {
     this.matchIdMap.delete(matchidNumerico);
+    this.matchPortMap.delete(matchidNumerico)
+  }
+
+  obtenerPortPartido(matchidNumerico: number): number {
+    return this.matchPortMap.get(matchidNumerico) || 27015;
   }
 
 
@@ -79,6 +85,10 @@ export class Cs2LifecycleService {
 
       this.matchIdMap.set(configuracionData.matchid, matchId);
       this.logger.log(`[Lifecycle] Mapeando matchid numérico ${configuracionData.matchid} → "${matchId}"`);
+
+      this.matchPortMap.set(configuracionData.matchid, gamePort);
+      this.logger.log(`[Lifecycle] Mapeando matchid numérico ${configuracionData.matchid} → puerto ${gamePort}`);
+
 
       // LÓGICA DE EJECUCIÓN SEGÚN OS
       this.logger.log(`[+] Lanzando CS2 Dedicado en puerto ${gamePort}...`);
@@ -124,7 +134,7 @@ export class Cs2LifecycleService {
 
       cs2Process.unref();
 
-      this.iniciarPollingRcon(matchId, gamePort);
+      this.iniciarPollingRcon(matchId, gamePort, configuracionData.matchid);
 
     } catch (error) {
       this.logger.error(`[-] Error al generar configuración o levantar el servidor: ${error}`);
@@ -152,7 +162,7 @@ export class Cs2LifecycleService {
   /**
    * Interroga al servidor cada 2 segundos. Apenas responde, ejecuta la inyección.
    */
-  private iniciarPollingRcon(matchId: string, gamePort: number): void {
+  private iniciarPollingRcon(matchId: string, gamePort: number, matchidNumerico?: number): void {
     this.logger.log(`[Polling RCON] Esperando de forma activa que el puerto ${gamePort} esté listo...`);
     let intentos = 0;
     const maxIntentos = 30; // 30 intentos * 2s = 1 minuto de tiempo de espera máximo por si se cuelga
@@ -169,7 +179,7 @@ export class Cs2LifecycleService {
           clearInterval(interval);
           
           // Ejecutamos la configuración de MatchZy inmediatamente
-          await this.ejecutarInyeccionMatchZy(matchId, gamePort);
+          await this.ejecutarInyeccionMatchZy(matchId, gamePort, matchidNumerico);
         }
       } catch (error) {
         // Las caídas por ECONNREFUSED entran acá mientras el server carga. Las ignoramos.
@@ -185,7 +195,7 @@ export class Cs2LifecycleService {
   /**
    * Inyecta las directivas de MatchZy y el webhook de tracking una vez que el servidor está online
    */
-  async ejecutarInyeccionMatchZy(matchId: string, gamePort: number): Promise<void> {
+  async ejecutarInyeccionMatchZy(matchId: string, gamePort: number, matchidNumerico?: number): Promise<void> {
     try {
       const backendUrl = this.configService.get<string>('BACKEND_WEBHOOK_URL')!; 
       const secretToken = this.configService.get<string>('MATCHZY_WEBHOOK_TOKEN')!;
@@ -199,7 +209,17 @@ export class Cs2LifecycleService {
       // 1.5 - LIMPIEZA DE RAÍZ: Desviar los backups nativos de Valve a la carpeta de MatchZy
       // Usamos barras invertidas escapadas para Windows, indicando que guarde dentro de MatchZyDataBackup
       this.logger.log(`[RCON Inyección] Desviando backups nativos de Valve para limpiar la raíz...`);
-      await this.rconService.executeCommand(`mp_backup_round_file_pattern "MatchZyDataBackup\\Valve\\${matchId}\\matchbackup"`, gamePort);
+      await this.rconService.executeCommand(
+        `mp_backup_round_file_pattern "MatchZyDataBackup\\Valve\\${matchId}\\matchbackup"`,
+        gamePort
+      );
+
+      if (matchidNumerico) {
+        await this.rconService.executeCommand(
+          `mp_backup_round_file_pattern "MatchZyDataBackup\\${matchidNumerico}\\matchbackup"`,
+          gamePort
+        );
+      }
 
 
       // 2. Inyectar Headers de seguridad obligatorios
@@ -256,6 +276,19 @@ export class Cs2LifecycleService {
       }
     } else {
       this.logger.warn(`[Lifecycle] No se encontró el directorio de backups: ${backupDir}`);
+    }
+  }
+
+  borrarPlayerNamesPartido(matchidNumerico: number): void {
+    const serverRootDir = this.configService.get<string>('CS2_SERVER_ROOT_DIR')!;
+    const normalizedRootDir = path.normalize(serverRootDir);
+    const playerNamesFile = path.join(normalizedRootDir, 'game', 'csgo', 'MatchZyPlayerNames', `Match_${matchidNumerico}.ini`);
+
+    if (fs.existsSync(playerNamesFile)) {
+      fs.unlinkSync(playerNamesFile);
+      this.logger.log(`[Lifecycle] PlayerNames eliminado: Match_${matchidNumerico}.ini`);
+    } else {
+      this.logger.warn(`[Lifecycle] No se encontró Match_${matchidNumerico}.ini para eliminar.`);
     }
   }
 }

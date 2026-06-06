@@ -64,7 +64,7 @@ export class Cs2Controller {
     }
     
     const { event, matchid: matchidNumerico } = eventData;
-    const gamePort = eventData.port || 27015;
+    const gamePort = this.cs2LifecycleService.obtenerPortPartido(matchidNumerico);
 
     // Traducimos el matchid numérico (8093) al matchId string ("SERIE_BO3_IGNA_02")
     const matchId = this.cs2LifecycleService.obtenerMatchIdPlataforma(matchidNumerico) || matchidNumerico.toString();
@@ -87,10 +87,11 @@ export class Cs2Controller {
         console.log(`[Webhook] La serie ya terminó y la demo está guardada. Mandando 'quit' vía RCON al puerto ${gamePort}...`);
         
         setTimeout(async () => {
-          this.cs2LifecycleService.borrarConfiguracion(matchId);
-          this.cs2LifecycleService.borrarBackupsPartido(matchidNumerico, matchId);
-          this.cs2LifecycleService.removerMapeoId(matchidNumerico);
-          await this.rconService.executeCommand('quit', gamePort);
+          this.cs2LifecycleService.borrarConfiguracion(matchId);                      //Borramos el json que enviamos en /start-match
+          this.cs2LifecycleService.borrarBackupsPartido(matchidNumerico, matchId);    //Borramos los backups
+          this.cs2LifecycleService.removerMapeoId(matchidNumerico);                   //Liberamos el mapeo id
+          this.cs2LifecycleService.borrarPlayerNamesPartido(matchidNumerico);         //Borramos el archivo en la carpeta MatchZyPlayerNames
+          await this.rconService.executeCommand('quit', gamePort);                    //Matamos al proceso en el puerto correspondiente.
         }, 1000);
       } else {
         console.log(`[Webhook] Se guardó la demo, pero falta resolver mapa o serie. El servidor se mantiene vivo.`);
