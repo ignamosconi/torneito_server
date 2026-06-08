@@ -21,6 +21,7 @@ export class Cs2LifecycleService {
   private seriesFinalizadas = new Set<number>();
   private matchIdMap = new Map<number, string>(); // matchid numérico → matchId string
   private matchPortMap = new Map<number, number>(); // matchid numérico → puerto
+  private matchIdInversoMap = new Map<string, number>(); // matchId string → matchid numérico
 
   /**
    * Registra que la serie llegó a su fin (ej: el 2-0 del BO3)
@@ -46,6 +47,8 @@ export class Cs2LifecycleService {
   }
 
   removerMapeoId(matchidNumerico: number): void {
+    const matchId = this.matchIdMap.get(matchidNumerico);
+    if (matchId) this.matchIdInversoMap.delete(matchId);
     this.matchIdMap.delete(matchidNumerico);
     this.matchPortMap.delete(matchidNumerico)
   }
@@ -88,6 +91,9 @@ export class Cs2LifecycleService {
 
       this.matchPortMap.set(configuracionData.matchid, gamePort);
       this.logger.log(`[Lifecycle] Mapeando matchid numérico ${configuracionData.matchid} → puerto ${gamePort}`);
+
+      this.matchIdInversoMap.set(matchId, configuracionData.matchid);
+      this.logger.log(`[Lifecycle] Mapeando matchId string "${matchId}" → matchid numérico ${configuracionData.matchid}`);
 
 
       // LÓGICA DE EJECUCIÓN SEGÚN OS
@@ -228,7 +234,10 @@ export class Cs2LifecycleService {
 
       // 3. Comando clave para chupar la config desde tu endpoint de NestJS
       const configUrl = `${backendUrl}/cs2/config/${matchId}`;
-      await this.rconService.executeCommand(`matchzy_demo_path "MatchZy/Demos/${matchId}/"`, gamePort);
+      const matchidNumericoStr = matchidNumerico?.toString() || matchId;
+
+      await this.rconService.executeCommand(`matchzy_demo_path "MatchZy/Demos/${matchidNumericoStr}/"`, gamePort);
+      await this.rconService.executeCommand(`matchzy_demo_name_format "demo_map{MAPNUMBER}_${matchidNumericoStr}"`, gamePort);
       const loadMatchCommand = `matchzy_loadmatch_url "${configUrl}"`;
       
       this.logger.log(`[RCON Inyección] Ejecutando comando de carga: ${loadMatchCommand}`);
