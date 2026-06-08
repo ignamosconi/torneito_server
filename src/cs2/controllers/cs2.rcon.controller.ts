@@ -70,7 +70,7 @@ export class Cs2Controller {
     const matchId = this.cs2LifecycleService.obtenerMatchIdPlataforma(matchidNumerico) || matchidNumerico.toString();
 
     this.logger.log(`[Webhook MatchZy] Evento recibido: "${event}" para MatchID: ${matchId} (Numérico: ${matchidNumerico})`);
-
+    console.log(`[DEBUG] Payload completo:`, JSON.stringify(eventData, null, 2));
     // CASO 1: Terminó la serie completa
     if (event === 'series_end') {
       console.log(`--- [EVENTO] SERIE FINALIZADA (MatchID: ${matchId}) ---`);
