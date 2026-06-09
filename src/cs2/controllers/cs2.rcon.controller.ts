@@ -23,8 +23,11 @@ export class Cs2Controller {
 
   //Poder escribir comandos, como si estuviéramos escribiendo en el cmd del server.
   @Post('cmd')
-  async sendCustomCommand(@Body('command') command: string) {
-    return await this.rconService.executeCommand(command);
+  async sendCustomCommand(
+    @Body('command') command: string,
+    @Body('port') port?: number,
+  ) {
+    return await this.rconService.executeCommand(command, port);
   }
 
 

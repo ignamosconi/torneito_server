@@ -41,7 +41,6 @@ export class Cs2RconService {
       // El bloque finally se ejecuta SIEMPRE, asegurando que el socket se cierre pase lo que pase
       if (rconClient) {
         await rconClient.end();
-        this.logger.log(`[RCON] Conexión cerrada limpiamente para ${host}:${port}`);
       }
     }
   }
