@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Body, Param, Res, HttpStatus, HttpCode, Headers, UnauthorizedException, Logger } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Res, HttpStatus, HttpCode, Headers, UnauthorizedException, Logger, Put, Delete, BadRequestException } from '@nestjs/common';
 import type { Response } from 'express';
 import { Cs2LifecycleService } from '../services/cs2.lifecycle.service';
 import { Cs2RconService } from '../services/cs2.rcon.service';
+import { Cs2AdminService } from '../services/cs2.admin.service';
 
 @Controller('cs2')
 export class Cs2Controller {
@@ -10,7 +11,8 @@ export class Cs2Controller {
 
   constructor(
     private readonly cs2LifecycleService: Cs2LifecycleService,
-    private readonly rconService: Cs2RconService
+    private readonly rconService: Cs2RconService,
+    private readonly adminService: Cs2AdminService,
   ) {}
 
     /*
@@ -135,5 +137,46 @@ export class Cs2Controller {
     
     this.logger.warn(`[Soporte Técnico] Restaurando ronda ${roundNumber} en el puerto ${port}...`);
     return await this.rconService.executeCommand(command, port);
+  }
+
+  /**
+   * ENDPOINT 6: Agregar un admin
+   */
+  @Post('admin')
+  @HttpCode(HttpStatus.OK)
+  async agregarAdmin(@Body() body: { steam64: string; nombre: string }) {
+    this.adminService.agregarAdmin(body.steam64, body.nombre);
+    return { status: 'success', message: `Admin [Admin]${body.nombre} agregado correctamente` };
+  }
+
+  /**
+   * ENDPOINT 7: Listar todos los admins
+   */
+  @Get('admin')
+  async listarAdmins() {
+    return this.adminService.listarAdmins();
+  }
+
+  /**
+   * ENDPOINT 8: Editar un admin
+   */
+  @Put('admin/:steam64')
+  @HttpCode(HttpStatus.OK)
+  async editarAdmin(
+    @Param('steam64') steam64: string,
+    @Body() body: { nuevoSteam64?: string; nuevoNombre?: string }
+  ) {
+    this.adminService.editarAdmin(steam64, body.nuevoSteam64, body.nuevoNombre);
+    return { status: 'success', message: `Admin ${steam64} editado correctamente` };
+  }
+
+  /**
+   * ENDPOINT 9: Remover un admin
+   */
+  @Delete('admin/:steam64')
+  @HttpCode(HttpStatus.OK)
+  async removerAdmin(@Param('steam64') steam64: string) {
+    this.adminService.removerAdmin(steam64);
+    return { status: 'success', message: `Admin ${steam64} removido correctamente` };
   }
 }

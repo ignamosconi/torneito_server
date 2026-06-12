@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process'; 
 import { Cs2RconService } from './cs2.rcon.service';
+import { Cs2AdminService } from './cs2.admin.service';
 
 @Injectable()
 export class Cs2LifecycleService {
@@ -12,6 +13,7 @@ export class Cs2LifecycleService {
   constructor(
     private readonly configService: ConfigService,
     private readonly rconService: Cs2RconService,
+    private readonly adminService: Cs2AdminService,
   ) {}
 
   /*
@@ -243,6 +245,17 @@ export class Cs2LifecycleService {
       this.logger.log(`[RCON Inyección] Ejecutando comando de carga: ${loadMatchCommand}`);
       const response = await this.rconService.executeCommand(loadMatchCommand, gamePort);
       this.logger.log(`[RCON Inyección] MatchZy respondió: ${response || 'OK (Silencioso)'}`);
+
+      // 4. Agregar todos los admins como espectadores
+      const admins = this.adminService.obtenerTodosLosSteam64();
+      this.logger.log(`[RCON Inyección] Agregando ${admins.length} admins como espectadores...`);
+      for (const admin of admins) {
+        await this.rconService.executeCommand(
+          `matchzy_addplayer ${admin.steam64} spec ${admin.nombre}`,
+          gamePort
+        );
+        this.logger.log(`[RCON Inyección] Admin agregado como spec: ${admin.nombre} (${admin.steam64})`);
+      }
 
     } catch (error) {
       this.logger.error(`[-] Error crítico en la inicialización por RCON: ${error}`);
