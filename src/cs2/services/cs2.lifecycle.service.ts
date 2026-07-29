@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process'; 
 import { Cs2RconService } from './cs2.rcon.service';
+import { Cs2AdminService } from './cs2.admin.service';
 
 @Injectable()
 export class Cs2LifecycleService {
@@ -12,6 +13,7 @@ export class Cs2LifecycleService {
   constructor(
     private readonly configService: ConfigService,
     private readonly rconService: Cs2RconService,
+    private readonly adminService: Cs2AdminService,
   ) {}
 
   /*
@@ -212,14 +214,8 @@ export class Cs2LifecycleService {
       const webhooksUrl = `${backendUrl}/cs2/events`;
       this.logger.log(`[RCON Inyección] Configurando URL de Webhooks: ${webhooksUrl}`);
 
-      // 1.5 - LIMPIEZA DE RAÍZ: Desviar los backups nativos de Valve a la carpeta de MatchZy
+      // 1.5 - LIMPIEZA DE RAÍZ: Desviar los backups a la carpeta de MatchZy
       // Usamos barras invertidas escapadas para Windows, indicando que guarde dentro de MatchZyDataBackup
-      this.logger.log(`[RCON Inyección] Desviando backups nativos de Valve para limpiar la raíz...`);
-      await this.rconService.executeCommand(
-        `mp_backup_round_file_pattern "MatchZyDataBackup\\Valve\\${matchId}\\matchbackup"`,
-        gamePort
-      );
-
       if (matchidNumerico) {
         await this.rconService.executeCommand(
           `mp_backup_round_file_pattern "MatchZyDataBackup\\${matchidNumerico}\\matchbackup"`,
@@ -244,6 +240,17 @@ export class Cs2LifecycleService {
       const response = await this.rconService.executeCommand(loadMatchCommand, gamePort);
       this.logger.log(`[RCON Inyección] MatchZy respondió: ${response || 'OK (Silencioso)'}`);
 
+      // 4. Agregar todos los admins como espectadores
+      const admins = this.adminService.obtenerTodosLosSteam64();
+      this.logger.log(`[RCON Inyección] Agregando ${admins.length} admins como espectadores...`);
+      for (const admin of admins) {
+        await this.rconService.executeCommand(
+          `matchzy_addplayer ${admin.steam64} spec ${admin.nombre}`,
+          gamePort
+        );
+        this.logger.log(`[RCON Inyección] Admin agregado como spec: ${admin.nombre} (${admin.steam64})`);
+      }
+
     } catch (error) {
       this.logger.error(`[-] Error crítico en la inicialización por RCON: ${error}`);
     }
@@ -264,24 +271,52 @@ export class Cs2LifecycleService {
   borrarBackupsPartido(matchidNumerico: number, matchId: string): void {
     const serverRootDir = this.configService.get<string>('CS2_SERVER_ROOT_DIR')!;
     const normalizedRootDir = path.normalize(serverRootDir);
-    const backupDir = path.join(normalizedRootDir, 'game', 'csgo', 'MatchZyDataBackup');
 
-    // Borrar todos los .json de MatchZy que correspondan al matchid numérico
-    // Formato: matchzy_555_0_round00.json
-    if (fs.existsSync(backupDir)) {
-      const archivos = fs.readdirSync(backupDir);
-      const jsonsDeLaSerie = archivos.filter(f => f.startsWith(`matchzy_${matchidNumerico}_`) && f.endsWith('.json'));
-      
-      for (const archivo of jsonsDeLaSerie) {
-        fs.unlinkSync(path.join(backupDir, archivo));
-        this.logger.log(`[Lifecycle] Backup eliminado: ${archivo}`);
+    const csgoDir = path.join(normalizedRootDir, 'game', 'csgo');                           // Ruta raíz de csgo (donde Valve guarda los .txt)
+    const backupDir = path.join(normalizedRootDir, 'game', 'csgo', 'MatchZyDataBackup');   // Ruta de MatchZy (donde guarda los .json)
+
+
+    // 1. Borrar los archivos .txt nativos de Valve en la raíz de csgo/
+    if (fs.existsSync(csgoDir)) {
+      try {
+        const archivosCsgo = fs.readdirSync(csgoDir);
+        // Filtra archivos tipo: matchzy_777_0_round05.txt
+        const txtsDeLaSerie = archivosCsgo.filter(
+          (f) => f.startsWith(`matchzy_${matchidNumerico}_`) && f.endsWith('.txt'),
+        );
+
+        for (const archivo of txtsDeLaSerie) {
+          fs.unlinkSync(path.join(csgoDir, archivo));
+          this.logger.log(`[Lifecycle] Backup TXT de Valve eliminado: ${archivo}`);
+        }
+      } catch (error) {
+        this.logger.error(`[Lifecycle] Error al limpiar archivos TXT en csgo/:`, error);
       }
+    }
 
-      // Borrar el matchbackup sin extensión
-      const matchbackupPath = path.join(backupDir, `matchbackup_${matchId}`);
-      if (fs.existsSync(matchbackupPath)) {
-        fs.unlinkSync(matchbackupPath);
-        this.logger.log(`[Lifecycle] Matchbackup eliminado: matchbackup_${matchId}`);
+
+    // 2. Borrar los archivos .json y matchbackup de MatchZy en MatchZyDataBackup/
+    if (fs.existsSync(backupDir)) {
+      try {
+        const archivosBackup = fs.readdirSync(backupDir);
+        // Filtra archivos tipo: matchzy_777_0_round05.json
+        const jsonsDeLaSerie = archivosBackup.filter(
+          (f) => f.startsWith(`matchzy_${matchidNumerico}_`) && f.endsWith('.json'),
+        );
+
+        for (const archivo of jsonsDeLaSerie) {
+          fs.unlinkSync(path.join(backupDir, archivo));
+          this.logger.log(`[Lifecycle] Backup JSON eliminado: ${archivo}`);
+        }
+
+        // Borrar el matchbackup sin extensión
+        const matchbackupPath = path.join(backupDir, `matchbackup_${matchId}`);
+        if (fs.existsSync(matchbackupPath)) {
+          fs.unlinkSync(matchbackupPath);
+          this.logger.log(`[Lifecycle] Matchbackup eliminado: matchbackup_${matchId}`);
+        }
+      } catch (error) {
+        this.logger.error(`[Lifecycle] Error al limpiar carpeta MatchZyDataBackup:`, error);
       }
     } else {
       this.logger.warn(`[Lifecycle] No se encontró el directorio de backups: ${backupDir}`);
