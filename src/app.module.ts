@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { Cs2Module } from './cs2/cs2.module';
 import { ConfigModule } from '@nestjs/config';
 
@@ -19,7 +17,7 @@ import { ConfigModule } from '@nestjs/config';
 
     Cs2Module,  
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
