@@ -214,15 +214,12 @@ export class Cs2LifecycleService {
       const webhooksUrl = `${backendUrl}/cs2/events`;
       this.logger.log(`[RCON Inyección] Configurando URL de Webhooks: ${webhooksUrl}`);
 
-      // 1.5 - LIMPIEZA DE RAÍZ: Desviar los backups a la carpeta de MatchZy
-      // Usamos barras invertidas escapadas para Windows, indicando que guarde dentro de MatchZyDataBackup
-      if (matchidNumerico) {
-        await this.rconService.executeCommand(
-          `mp_backup_round_file_pattern "MatchZyDataBackup\\${matchidNumerico}\\matchbackup"`,
-          gamePort
-        );
-      }
-
+      // 1.5 - CONFIGURACIÓN DE BACKUPS NATIVOS DE VALVE / MATCHZY
+      this.logger.log(`[RCON Inyección] Inyectando cVars para backups nativos de CS2...`);
+      await this.rconService.executeCommand(`mp_backup_round_auto 1`, gamePort);
+      await this.rconService.executeCommand(`mp_backup_round_file "backup"`, gamePort);
+      await this.rconService.executeCommand(`mp_backup_round_file_capacity 100`, gamePort);
+      await this.rconService.executeCommand(`mp_backup_round_file_pattern "%prefix%_round%round%.txt"`, gamePort);
 
       // 2. Inyectar Headers de seguridad obligatorios
       await this.rconService.executeCommand(`matchzy_remote_log_header_key "Authorization"`, gamePort);

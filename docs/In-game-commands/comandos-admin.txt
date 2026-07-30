@@ -1,0 +1,7 @@
+Si sos administrador, podés ejecutar los siguientes comandos en la partida:
+
+    !start: Fuerza el inicio de la partida, indistintamente de la cantidad de jugadores que hayan puesto .ready
+    !forceunpause
+
+    !restore 3: Resetea la ronda N° 4 de esa partida (osea si estás 12-7 y ponés restore 3, volvés al
+                inicio de la ronda cuatro, que en el marcador se ve como la ronda del 3-0, por ej)

@@ -1,3 +1,12 @@
+0. Usar steam CMD para descargar el servidor dedicado de CS2. SE PUEDE HACER TODO ANÓNIMO, no hace falta cuenta.
+Va a quedar esta estructura:
+29/07/2026  12:23    <DIR>          server				→ Acá está todo lo del servidor
+02/06/2026  20:33               324 server.bat			→ Test para levantarlo manual, después no se usa más.
+29/07/2026  12:40    <DIR>          steamcmd			→ Steam cmd usado únicamente para descarga original.
+09/07/2026  09:35               541 update.bat			→ Bat para actualización
+29/07/2026  12:53    <DIR>          z - Procedimiento para actualizar
+
+
 1. Ejecutar el archivo "update.bat". Esto descarga la actualización de CS2.
 1a) Después de actualizar, volver a ejecutar el archivo. Verificar dos veces los files asegura que ande bien.
 
