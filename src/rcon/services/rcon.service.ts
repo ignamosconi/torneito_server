@@ -18,7 +18,11 @@ export class RconService implements IRconService {
 
     try {
       this.logger.log(`[RCON] Conectando a ${host}:${port}...`);
-      rconClient = await Rcon.connect({ host, port, password });
+
+      // Timeout de 1500ms: menor que el intervalo de polling (2000ms)
+      // Evita que conexiones fallidas se acumulen en el event loop
+      rconClient = await Rcon.connect({ host, port, password, timeout: 1500 });
+
       this.logger.log(`[RCON] Enviando: "${command}"`);
       return await rconClient.send(command);
     } catch (error) {

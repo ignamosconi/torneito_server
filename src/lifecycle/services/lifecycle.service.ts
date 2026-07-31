@@ -137,8 +137,13 @@ export class LifecycleService implements ILifecycleService {
     this.logger.log(`[Polling RCON] Esperando que el puerto ${gamePort} esté listo...`);
     let intentos = 0;
     const maxIntentos = 30;
+    let corriendo = false; // Flag para evitar ejecuciones solapadas
 
     const interval = setInterval(async () => {
+      // Si el intento anterior todavía no terminó, lo saltamos
+      if (corriendo) return;
+      corriendo = true;
+
       intentos++;
       try {
         const respuesta = await this.rconService.executeCommand('echo ping_backend', gamePort);
@@ -147,7 +152,11 @@ export class LifecycleService implements ILifecycleService {
           clearInterval(interval);
           await this.ejecutarInyeccionMatchZy(matchId, gamePort, matchidNumerico);
         }
-      } catch (_) { /* ECONNREFUSED esperado mientras carga */ }
+      } catch (_) {
+        // ECONNREFUSED esperado mientras el servidor carga
+      } finally {
+        corriendo = false;
+      }
 
       if (intentos >= maxIntentos) {
         this.logger.error(`[Polling RCON] Timeout en puerto ${gamePort}`);
