@@ -171,6 +171,9 @@ export class LifecycleService implements ILifecycleService {
       await this.rconService.executeCommand(`matchzy_remote_log_header_key "Authorization"`, gamePort);
       await this.rconService.executeCommand(`matchzy_remote_log_header_value "Bearer ${secretToken}"`, gamePort);
 
+      //Url donde MatchZy envía los eventos. 
+      await this.rconService.executeCommand(`matchzy_remote_log_url "${backendUrl}/lifecycle/events"`, gamePort);
+
       const matchidStr = matchidNumerico?.toString() ?? matchId;
       await this.rconService.executeCommand(`matchzy_demo_path "MatchZy/Demos/${matchidStr}/"`, gamePort);
       await this.rconService.executeCommand(`matchzy_demo_name_format "demo_map{MAPNUMBER}_${matchidStr}"`, gamePort);

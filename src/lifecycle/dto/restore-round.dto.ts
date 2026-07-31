@@ -26,10 +26,8 @@ export class RestoreRoundDto {
     description: 'Número de ronda al que se quiere restaurar',
     example: 5,
     minimum: 0,
-    maximum: 30,
   })
   @IsNumber()
   @Min(0)
-  @Max(30)
   roundNumber!: number;
 }
