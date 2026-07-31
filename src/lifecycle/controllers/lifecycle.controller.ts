@@ -45,9 +45,20 @@ export class LifecycleController implements ILifecycleController {
   @Post('events')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('matchzy-webhook-token')
-  @ApiOperation({ summary: 'Webhook de eventos MatchZy', description: 'Endpoint privado al que MatchZy envía todos los eventos del partido en tiempo real. Requiere token Bearer.' })
+  @ApiOperation({
+    summary: 'Webhook de eventos MatchZy',
+    description: `
+      Endpoint privado al que MatchZy envía todos los eventos del partido en tiempo real.
+      Requiere token Bearer. Eventos soportados:
+      series_start, series_end, player_ready, knife_round_started, knife_round_ended,
+      warmup_ended, going_live, round_started, round_end, side_swap, halftime_started,
+      map_result, demo_recording_start, demo_recording_stop,
+      player_disconnect, match_paused, match_unpaused.
+    `,
+  })
   @ApiResponse({ status: 200, description: 'Evento procesado correctamente' })
   @ApiResponse({ status: 401, description: 'Token de autorización ausente o inválido' })
+  @ApiResponse({ status: 400, description: 'Payload inválido (campo extra no reconocido o tipo incorrecto)' })
   async handleMatchEvents(
     @Body() eventData: MatchZyEventDto,
     @Headers('authorization') authHeader: string,
