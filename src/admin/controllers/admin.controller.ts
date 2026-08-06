@@ -5,6 +5,7 @@ import { IAdminController } from '../interfaces/admin.controller.interface';
 import { AgregarAdminDto } from '../dto/agregar-admin.dto';
 import { EditarAdminDto } from '../dto/editar-admin.dto';
 import { AdminEntry } from '../interfaces/admin.service.interface';
+import { StatusDto } from 'src/shared/dto/status.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -18,7 +19,7 @@ export class AdminController implements IAdminController {
   @ApiOperation({ summary: 'Agregar admin', description: 'Registra un nuevo administrador en los archivos de CounterStrikeSharp y MatchZy.' })
   @ApiResponse({ status: 200, description: 'Admin agregado correctamente' })
   @ApiResponse({ status: 400, description: 'SteamID64 inválido, nombre con caracteres prohibidos, o propiedades extra en el body' })
-  async agregarAdmin(@Body() body: AgregarAdminDto): Promise<{ status: string; message: string }> {
+  async agregarAdmin(@Body() body: AgregarAdminDto): Promise<StatusDto> {
     this.logger.log(`[POST /admin] Agregando admin: ${body.nombre} (${body.steam64})`);
     this.adminService.agregarAdmin(body.steam64, body.nombre);
     return { status: 'success', message: `Admin [Admin]${body.nombre} agregado correctamente` };
@@ -42,7 +43,7 @@ export class AdminController implements IAdminController {
   async editarAdmin(
     @Param('steam64') steam64: string,
     @Body() body: EditarAdminDto,
-  ): Promise<{ status: string; message: string }> {
+  ): Promise<StatusDto> {
     this.logger.log(`[PUT /admin/${steam64}] Editando admin`);
     this.adminService.editarAdmin(steam64, body.nuevoSteam64, body.nuevoNombre);
     return { status: 'success', message: `Admin ${steam64} editado correctamente` };
@@ -54,7 +55,7 @@ export class AdminController implements IAdminController {
   @ApiParam({ name: 'steam64', description: 'SteamID64 del admin a remover', example: '76561198012345678' })
   @ApiResponse({ status: 200, description: 'Admin removido correctamente' })
   @ApiResponse({ status: 404, description: 'Admin no encontrado' })
-  async removerAdmin(@Param('steam64') steam64: string): Promise<{ status: string; message: string }> {
+  async removerAdmin(@Param('steam64') steam64: string): Promise<StatusDto> {
     this.logger.warn(`[DELETE /admin/${steam64}] Removiendo admin`);
     this.adminService.removerAdmin(steam64);
     return { status: 'success', message: `Admin ${steam64} removido correctamente` };

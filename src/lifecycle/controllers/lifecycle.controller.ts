@@ -8,6 +8,8 @@ import { ServerReadyDto } from '../dto/server-ready.dto';
 import { RestoreRoundDto } from '../dto/restore-round.dto';
 import { MatchZyEventDto } from '../dto/matchzy-event.dto';
 import { RconService } from 'src/rcon/services/rcon.service';
+import { StatusDto } from 'src/shared/dto/status.dto';
+import { ReceivedDto } from 'src/shared/dto/received.dto';
 
 @ApiTags('lifecycle')
 @Controller('lifecycle')
@@ -24,7 +26,7 @@ export class LifecycleController implements ILifecycleController {
   @ApiOperation({ summary: 'Iniciar partido', description: 'Genera la configuración JSON para MatchZy, levanta el ejecutable del servidor CS2 y dispara el polling de RCON.' })
   @ApiResponse({ status: 200, description: 'Servidor inicializado y RCON en cola' })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
-  async startMatch(@Body() body: StartMatchDto): Promise<{ status: string; message: string }> {
+  async startMatch(@Body() body: StartMatchDto): Promise<StatusDto> {
     this.logger.log(`[POST /lifecycle/start-match] Iniciando partido: ${body.matchId}`);
     await this.lifecycleService.generarConfiguracionYPlantar(body.matchId, body.config, body.port ?? 27015);
     return { status: 'success', message: 'Servidor inicializado y RCON en cola' };
@@ -62,7 +64,7 @@ export class LifecycleController implements ILifecycleController {
   async handleMatchEvents(
     @Body() eventData: MatchZyEventDto,
     @Headers('authorization') authHeader: string,
-  ): Promise<{ received: boolean }> {
+  ): Promise<ReceivedDto> {
     if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedException('Token de autorización inválido o ausente');
     this.logger.log(`[POST /lifecycle/events] Evento: "${eventData.event}" (matchid: ${eventData.matchid})`);
     await this.lifecycleService.procesarEvento(eventData);
@@ -73,7 +75,7 @@ export class LifecycleController implements ILifecycleController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Servidor CS2 listo', description: 'El servidor CS2 notifica al backend que terminó de cargar el mapa y el plugin MatchZy está activo. Dispara la inyección de configuración vía RCON.' })
   @ApiResponse({ status: 200, description: 'Inyección de MatchZy disparada' })
-  async handleServerReady(@Body() body: ServerReadyDto): Promise<{ status: string }> {
+  async handleServerReady(@Body() body: ServerReadyDto): Promise<StatusDto> {
     this.logger.log(`[POST /lifecycle/server-ready] Servidor listo en puerto ${body.port}`);
     this.lifecycleService.ejecutarInyeccionMatchZy(body.matchId, body.port);
     return { status: 'acknowledged' };
