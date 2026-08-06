@@ -1,10 +1,13 @@
+import { Inject } from '@nestjs/common';
+import type { IRconService } from '../../rcon/interfaces/rcon.service.interface';
+import type { IAdminService } from '../../admin/interfaces/admin.service.interface';
+import { RCON_SERVICE } from '../../rcon/rcon.tokens';
+import { ADMIN_SERVICE } from '../../admin/admin.tokens';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
-import { RconService } from '../../rcon/services/rcon.service';
-import { AdminService } from '../../admin/services/admin.service';
 import { ILifecycleService } from '../interfaces/lifecycle.service.interface';
 import { MatchZyEventDto } from '../dto/matchzy-event.dto';
 import { eliminarArchivo, guardarJsonEnArchivo } from '../../shared/helpers/file.helper';
@@ -24,8 +27,8 @@ export class LifecycleService implements ILifecycleService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly rconService: RconService,
-    private readonly adminService: AdminService,
+    @Inject(RCON_SERVICE) private readonly rconService: IRconService,
+    @Inject(ADMIN_SERVICE) private readonly adminService: IAdminService,
   ) {}
 
   /* 

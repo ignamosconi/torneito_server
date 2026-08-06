@@ -1,6 +1,8 @@
+import { Inject } from '@nestjs/common';
+import type { IRconService } from '../interfaces/rcon.service.interface';
+import { RCON_SERVICE } from '../rcon.tokens';
 import { Body, Controller, Logger, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { RconService } from '../services/rcon.service';
 import { IRconController } from '../interfaces/rcon.controller.interface';
 import { SendCommandDto } from '../dto/send-command.dto';
 
@@ -9,7 +11,9 @@ import { SendCommandDto } from '../dto/send-command.dto';
 export class RconController implements IRconController {
   private readonly logger = new Logger(RconController.name);
 
-  constructor(private readonly rconService: RconService) {}
+  constructor(
+    @Inject(RCON_SERVICE) private readonly rconService: IRconService,
+  ) {}
 
   @Post('cmd')
   @ApiOperation({ summary: 'Ejecutar comando RCON', description: 'Envía un comando de consola directamente al servidor CS2 vía RCON. Útil para depuración o acciones manuales.' })

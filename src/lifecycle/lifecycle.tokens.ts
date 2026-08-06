@@ -1,0 +1,1 @@
+export const LIFECYCLE_SERVICE = 'ILifecycleService';

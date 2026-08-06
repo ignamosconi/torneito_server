@@ -1,13 +1,16 @@
+import { Inject } from '@nestjs/common';
+import type { ILifecycleService } from '../interfaces/lifecycle.service.interface';
+import type { IRconService } from 'src/rcon/interfaces/rcon.service.interface';
+import { LIFECYCLE_SERVICE } from '../lifecycle.tokens';
+import { RCON_SERVICE } from 'src/rcon/rcon.tokens';
 import { Body, Controller, Get, HttpCode, HttpStatus, Headers, Logger, Param, Post, Res, UnauthorizedException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { LifecycleService } from '../services/lifecycle.service';
 import { ILifecycleController } from '../interfaces/lifecycle.controller.interface';
 import { StartMatchDto } from '../dto/start-match.dto';
 import { ServerReadyDto } from '../dto/server-ready.dto';
 import { RestoreRoundDto } from '../dto/restore-round.dto';
 import { MatchZyEventDto } from '../dto/matchzy-event.dto';
-import { RconService } from 'src/rcon/services/rcon.service';
 import { StatusDto } from 'src/shared/dto/status.dto';
 import { ReceivedDto } from 'src/shared/dto/received.dto';
 
@@ -17,8 +20,8 @@ export class LifecycleController implements ILifecycleController {
   private readonly logger = new Logger(LifecycleController.name);
 
   constructor(
-    private readonly lifecycleService: LifecycleService,
-    private readonly rconService: RconService,
+    @Inject(LIFECYCLE_SERVICE) private readonly lifecycleService: ILifecycleService,
+    @Inject(RCON_SERVICE) private readonly rconService: IRconService,
 ) {}
 
   @Post('start-match')

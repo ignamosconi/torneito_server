@@ -1,6 +1,8 @@
+import { Inject } from '@nestjs/common';
+import type { IAdminService } from '../interfaces/admin.service.interface';
+import { ADMIN_SERVICE } from '../admin.tokens';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, Put } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AdminService } from '../services/admin.service';
 import { IAdminController } from '../interfaces/admin.controller.interface';
 import { AgregarAdminDto } from '../dto/agregar-admin.dto';
 import { EditarAdminDto } from '../dto/editar-admin.dto';
@@ -12,7 +14,9 @@ import { StatusDto } from 'src/shared/dto/status.dto';
 export class AdminController implements IAdminController {
   private readonly logger = new Logger(AdminController.name);
 
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    @Inject(ADMIN_SERVICE) private readonly adminService: IAdminService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)

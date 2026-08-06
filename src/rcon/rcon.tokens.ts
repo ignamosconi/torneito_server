@@ -1,0 +1,1 @@
+export const RCON_SERVICE = 'IRconService';
