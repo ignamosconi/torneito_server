@@ -31,7 +31,7 @@ export class LifecycleController implements ILifecycleController {
   @ApiResponse({ status: 400, description: 'Payload inválido' })
   async startMatch(@Body() body: StartMatchDto): Promise<StatusDto> {
     this.logger.log(`[POST /lifecycle/start-match] Iniciando partido: ${body.matchId}`);
-    await this.lifecycleService.generarConfiguracionYPlantar(body.matchId, body.config, body.port ?? 27015);
+    await this.lifecycleService.generarConfiguracionYPlantar(body.matchId, body.config, body.port);
     return { status: 'success', message: 'Servidor inicializado y RCON en cola' };
   }
 

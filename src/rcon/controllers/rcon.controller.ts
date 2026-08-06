@@ -20,7 +20,7 @@ export class RconController implements IRconController {
   @ApiResponse({ status: 200, description: 'Respuesta del servidor CS2 al comando ejecutado', type: String })
   @ApiResponse({ status: 400, description: 'Cuerpo de la petición inválido (comando vacío, puerto fuera de rango, etc.)' })
   async sendCustomCommand(@Body() body: SendCommandDto): Promise<string> {
-    this.logger.log(`[cmd] Ejecutando: "${body.command}" en puerto ${body.port ?? 27015}`);
+    this.logger.log(`[cmd] Ejecutando: "${body.command}" en puerto ${body.port}`);
     return this.rconService.executeCommand(body.command, body.port);
   }
 }

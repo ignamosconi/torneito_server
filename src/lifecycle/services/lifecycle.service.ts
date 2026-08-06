@@ -3,7 +3,7 @@ import type { IRconService } from '../../rcon/interfaces/rcon.service.interface'
 import type { IAdminService } from '../../admin/interfaces/admin.service.interface';
 import { RCON_SERVICE } from '../../rcon/rcon.tokens';
 import { ADMIN_SERVICE } from '../../admin/admin.tokens';
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -21,9 +21,10 @@ export class LifecycleService implements ILifecycleService {
     ESTADO EN MEMORIA
   */
   private readonly seriesFinalizadas = new Set<number>();
-  private readonly matchIdMap = new Map<number, string>();      // numerico → string
-  private readonly matchPortMap = new Map<number, number>();    // numerico → puerto
-  private readonly matchIdInversoMap = new Map<string, number>(); // string → numerico
+  private readonly matchIdMap = new Map<number, string>();           // numerico → string
+  private readonly matchPortMap = new Map<number, number>();        // numerico → puerto
+  private readonly matchIdInversoMap = new Map<string, number>();  // string → numerico
+  private readonly puertosActivos = new Set<number>();            // fuente de verdad de puertos ocupados
 
   constructor(
     private readonly configService: ConfigService,
@@ -55,13 +56,15 @@ export class LifecycleService implements ILifecycleService {
     return this.matchIdMap.get(matchidNumerico);
   }
 
-  obtenerPortPartido(matchidNumerico: number): number {
-    return this.matchPortMap.get(matchidNumerico) ?? 27015;
+  obtenerPortPartido(matchidNumerico: number): number | undefined {
+    return this.matchPortMap.get(matchidNumerico);
   }
 
   removerMapeoId(matchidNumerico: number): void {
     const matchId = this.matchIdMap.get(matchidNumerico);
     if (matchId) this.matchIdInversoMap.delete(matchId);
+    const puerto = this.matchPortMap.get(matchidNumerico);
+    if (puerto) this.puertosActivos.delete(puerto);
     this.matchIdMap.delete(matchidNumerico);
     this.matchPortMap.delete(matchidNumerico);
   }
@@ -82,6 +85,16 @@ export class LifecycleService implements ILifecycleService {
   */
 
   async generarConfiguracionYPlantar(matchId: string, configuracionData: any, gamePort: number): Promise<void> {
+    
+    //Si el puerto ya está ocupado, no dejamos levantar.
+    if (this.puertosActivos.has(gamePort)) {
+      const sugerido = this.puertosActivos.size > 0 ? Math.max(...this.puertosActivos) + 1 : gamePort + 1;
+      throw new BadRequestException(
+        `El puerto ${gamePort} ya está en uso. Puerto sugerido: ${sugerido}`,
+      );
+    }
+
+    //Si el puerto no está ocupado, levantamos el servidor con todas las configuraciones.
     try {
       const normalizedRootDir = this.getServerRootNormalized();
       const filePath = this.getConfigFilePath(matchId);
@@ -92,6 +105,7 @@ export class LifecycleService implements ILifecycleService {
       this.matchIdMap.set(configuracionData.matchid, matchId);
       this.matchPortMap.set(configuracionData.matchid, gamePort);
       this.matchIdInversoMap.set(matchId, configuracionData.matchid);
+      this.puertosActivos.add(gamePort);
       this.logger.log(`[Lifecycle] Mapeando ${configuracionData.matchid} → "${matchId}" → puerto ${gamePort}`);
 
       const rconPassword = this.configService.get<string>('CS2_RCON_PASSWORD')!;
@@ -209,6 +223,10 @@ export class LifecycleService implements ILifecycleService {
   async procesarEvento(eventData: MatchZyEventDto): Promise<void> {
     const { event, matchid: matchidNumerico } = eventData;
     const gamePort = this.obtenerPortPartido(matchidNumerico);
+    if (gamePort === undefined) {
+      this.logger.error(`[Webhook] Puerto no encontrado para matchid ${matchidNumerico}. ¿Servidor no registrado / levantado?`);
+      return;
+    }
     const matchId = this.obtenerMatchIdPlataforma(matchidNumerico) ?? matchidNumerico.toString();
 
     this.logger.log(`[Webhook] Evento "${event}" para MatchID: ${matchId} (Numérico: ${matchidNumerico})`);

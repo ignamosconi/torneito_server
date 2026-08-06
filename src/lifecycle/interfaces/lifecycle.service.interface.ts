@@ -8,7 +8,7 @@ export interface ILifecycleService {
   marcarSerieTerminada(matchId: number): void;
   debeApagarServidor(matchId: number): boolean;
   obtenerMatchIdPlataforma(matchidNumerico: number): string | undefined;
-  obtenerPortPartido(matchidNumerico: number): number;
+  obtenerPortPartido(matchidNumerico: number): number | undefined;
   removerMapeoId(matchidNumerico: number): void;
   borrarConfiguracion(matchId: string): void;
   borrarBackupsPartido(matchidNumerico: number, matchId: string): void;

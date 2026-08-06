@@ -9,10 +9,9 @@ export class RconService implements IRconService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  async executeCommand(command: string, customPort?: number): Promise<string> {
+  async executeCommand(command: string, port: number): Promise<string> {
     const host = this.configService.get<string>('CS2_RCON_HOST') || '127.0.0.1';
     const password = this.configService.get<string>('CS2_RCON_PASSWORD')!;
-    const port = customPort ?? this.configService.get<number>('CS2_RCON_PORT') ?? 27015;
 
     let rconClient: Rcon | null = null;
 

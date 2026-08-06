@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsObject, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsObject, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 export class StartMatchDto {
   @ApiProperty({
@@ -20,16 +20,14 @@ export class StartMatchDto {
   @IsObject()
   config!: Record<string, any>;
 
-  @ApiPropertyOptional({
-    description: 'Puerto del servidor CS2 a levantar. Por defecto 27015',
-    example: 27015,
+  @ApiProperty({
+    description: 'Puerto del servidor CS2 a levantar',
+    example: 27016,
     minimum: 1024,
     maximum: 65535,
   })
   @IsNumber()
-  @IsOptional()
   @Min(1024)
   @Max(65535)
-  port?: number;
-  
+  port!: number;
 }

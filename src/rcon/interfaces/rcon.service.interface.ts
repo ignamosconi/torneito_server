@@ -5,5 +5,5 @@ export interface IRconService {
    * @param customPort Puerto opcional; si se omite usa el del .env
    * @returns Respuesta del servidor o mensaje de error controlado
    */
-  executeCommand(command: string, customPort?: number): Promise<string>;
+  executeCommand(command: string, port: number): Promise<string>;
 }

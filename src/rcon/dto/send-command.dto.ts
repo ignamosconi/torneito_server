@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 export class SendCommandDto {
   @ApiProperty({
@@ -13,15 +13,14 @@ export class SendCommandDto {
   @MaxLength(512)
   command!: string;
 
-  @ApiPropertyOptional({
-    description: 'Puerto del servidor CS2 destino. Si se omite, usa el puerto por defecto del .env (27015)',
-    example: 27015,
+  @ApiProperty({
+    description: 'Puerto del servidor CS2 destino',
+    example: 27016,
     minimum: 1024,
     maximum: 65535,
   })
   @IsNumber()
-  @IsOptional()
   @Min(1024)
   @Max(65535)
-  port?: number;
+  port!: number;
 }
