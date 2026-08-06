@@ -26,7 +26,7 @@ export class AdminController implements IAdminController {
   async agregarAdmin(@Body() body: AgregarAdminDto): Promise<StatusDto> {
     this.logger.log(`[POST /admin] Agregando admin: ${body.nombre} (${body.steam64})`);
     this.adminService.agregarAdmin(body.steam64, body.nombre);
-    return { status: 'success', message: `Admin [Admin]${body.nombre} agregado correctamente` };
+    return { status: 'success', message: `Admin [ADMIN]${body.nombre} agregado correctamente` };
   }
 
   @Get()
