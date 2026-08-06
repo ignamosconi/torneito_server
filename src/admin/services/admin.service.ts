@@ -63,9 +63,12 @@ export class AdminService implements IAdminService {
   */
   agregarAdmin(steam64: string, nombre: string): void {
     this.validarNombre(nombre);
-    const nombreConPrefijo = `[Admin]${nombre}`;
-
     const cssAdmins = this.leerCssAdmins();
+    const steam64Duplicado = Object.values(cssAdmins).some((entry) => entry.identity === steam64);
+    if (steam64Duplicado) throw new BadRequestException(`El steam64 ${steam64} ya está registrado como admin`);
+
+    const nombreConPrefijo = `[ADMIN]${nombre}`;
+
     cssAdmins[nombreConPrefijo] = { identity: steam64, immunity: 100, flags: ['@css/root'] };
     this.guardarCssAdmins(cssAdmins);
 
@@ -73,7 +76,7 @@ export class AdminService implements IAdminService {
     matchzyAdmins[steam64] = '';
     this.guardarMatchzyAdmins(matchzyAdmins);
 
-    this.logger.log(`[Admin] Agregado: ${nombreConPrefijo} (${steam64})`);
+    this.logger.log(`[ADMIN] Agregado: ${nombreConPrefijo} (${steam64})`);
   }
 
   listarAdmins(): AdminEntry[] {
@@ -93,8 +96,13 @@ export class AdminService implements IAdminService {
     const entradaActual = Object.entries(cssAdmins).find(([_, data]) => data.identity === steam64Original);
     if (!entradaActual) throw new NotFoundException(`Admin con steam64 ${steam64Original} no encontrado`);
 
+    if (nuevoSteam64 && nuevoSteam64 !== steam64Original) {
+      const steam64Duplicado = Object.values(cssAdmins).some((entry) => entry.identity === nuevoSteam64);
+      if (steam64Duplicado) throw new BadRequestException(`El steam64 ${nuevoSteam64} ya está registrado como admin`);
+    }
+
     const [nombreActual, datosActuales] = entradaActual;
-    const nombreFinal = nuevoNombre ? `[Admin]${nuevoNombre}` : nombreActual;
+    const nombreFinal = nuevoNombre ? `[ADMIN]${nuevoNombre}` : nombreActual;
     const steam64Final = nuevoSteam64 ?? steam64Original;
 
     delete cssAdmins[nombreActual];
@@ -107,7 +115,7 @@ export class AdminService implements IAdminService {
       this.guardarMatchzyAdmins(matchzyAdmins);
     }
 
-    this.logger.log(`[Admin] Editado: ${nombreActual} → ${nombreFinal} (${steam64Original} → ${steam64Final})`);
+    this.logger.log(`[ADMIN] Editado: ${nombreActual} → ${nombreFinal} (${steam64Original} → ${steam64Final})`);
   }
 
   removerAdmin(steam64: string): void {
@@ -124,7 +132,7 @@ export class AdminService implements IAdminService {
     this.guardarCssAdmins(cssAdmins);
     this.guardarMatchzyAdmins(matchzyAdmins);
 
-    this.logger.log(`[Admin] Removido: ${nombre} (${steam64})`);
+    this.logger.log(`[ADMIN] Removido: ${nombre} (${steam64})`);
   }
 
   obtenerTodosLosSteam64(): AdminEntry[] {

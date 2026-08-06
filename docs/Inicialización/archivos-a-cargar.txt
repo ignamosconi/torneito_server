@@ -11,7 +11,7 @@ Lo que sí hay que tocar son los archivos de admins, en:
                 "@css/root"                         → Se pueden crear "tiers" de admins, no implementado por ahora.
                 ]
             },
-            "[Admin]Igna": {
+            "[ADMIN]Igna": {
                 "identity": "STEAMID64",
                 "immunity": 100,
                 "flags": [
