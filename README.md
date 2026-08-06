@@ -13,14 +13,23 @@ El proyecto utiliza tres plugins base:
 - [MatchZy Enhanced](https://github.com/sivert-io/matchzy-Enhanced/releases)
 
 
-## Comandos para levantar el servidor
+# Comandos 
+
+## Cómo iniciar este repositorio
 Una vez levantado, pueden utilizarse los distintos endpoints (documentados en Swagger) para levantar los servidores de juego.
 ```bash
 $ npm install
 $ npm run start:dev
 ```
 
-## Comandos para administradores
+### Setup en Linux
+Dar permisos de ejecución al binario de CS2 antes de iniciar el backend:
+```bash
+$ chmod +x /ruta/al/servidor/game/bin/linuxsteamrt64/cs2
+```
+
+
+## Comandos en partida (admins)
 Cuando un administrador está en un servidor, puede ejecutar los comandos definidos [en la documentación de MatchZy Enhanced](https://docs.sivert.io/docs/me)
 
 ```bash
@@ -28,11 +37,12 @@ Cuando un administrador está en un servidor, puede ejecutar los comandos defini
 !restore 3  → Restaurar la ronda N° 4 (cuando por ejemplo el partido estaba 3-0, y estaba por empezar la ronda 4. El contador inicia en 0)
 ```
 
-## Autor
+
+# Autor
 Este repositorio fue creado por Ignacio Mosconi
 - [Github](https://github.com/ignamosconi)
 - [Portfolio](https://ignamosconi.com.ar)
 
 
-## Licencia
+# Licencia
 Torneito is MIT Licensed.
