@@ -6,6 +6,9 @@ STEAMID64 específicas a los roles de administración.
 
 Cuenta también con la capacidad de recuento de estadísticas y descarga de demos al finalizar un mapa / serie; así también como la habilidad de restaurar rondas específicas de un determinado mapa ya jugado.
 
+(!) Lo bueno de este backend es que solamente hay que instalar el servidor de CS2 con SteamCMD y listo, no hay que entrar a configurar
+ningún archivo del servidor, este backend se encarga de hacer todo.
+
 ## Stack 
 El proyecto utiliza tres plugins base: 
 - [Metamod: Source](https://www.sourcemm.net/downloads.php?branch=master)
