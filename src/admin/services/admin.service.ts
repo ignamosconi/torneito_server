@@ -1,24 +1,33 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
 import * as path from 'path';
+import { IAdminService, AdminEntry } from '../interfaces/admin.service.interface';
+import { leerJsonDeArchivo, guardarJsonEnArchivo } from '../../shared/helpers/file.helper';
+
+/** Forma de una entrada de admin en el archivo admins.json de CounterStrikeSharp */
+interface CssAdminEntry {
+  identity: string;
+  immunity: number;
+  flags: string[];
+}
 
 @Injectable()
-export class Cs2AdminService {
-  private readonly logger = new Logger(Cs2AdminService.name);
+export class AdminService implements IAdminService {
+  private readonly logger = new Logger(AdminService.name);
 
   constructor(private readonly configService: ConfigService) {}
 
+  // Validaciones
   private validarNombre(nombre: string): void {
     const caracteresProhibidos = /[ \(\)\{\}\[\]]/;
     if (caracteresProhibidos.test(nombre)) {
-      throw new BadRequestException( 
-        `El nombre '${nombre}' contiene caracteres no permitidos. Eliminá los siguientes caracteres: espacios, (, ), {, }, [, ]`
+      throw new BadRequestException(
+        `El nombre '${nombre}' contiene caracteres no permitidos. Eliminá espacios, (, ), {, }, [, ]`,
       );
     }
   }
 
-
+  // Rutas de archivos
   private getCssAdminsPath(): string {
     const serverRootDir = this.configService.get<string>('CS2_SERVER_ROOT_DIR')!;
     return path.join(path.normalize(serverRootDir), 'game', 'csgo', 'addons', 'counterstrikesharp', 'configs', 'admins.json');
@@ -29,52 +38,45 @@ export class Cs2AdminService {
     return path.join(path.normalize(serverRootDir), 'game', 'csgo', 'cfg', 'MatchZy', 'admins.json');
   }
 
-  private leerCssAdmins(): Record<string, { identity: string; immunity: number; flags: string[] }> {
-    const filePath = this.getCssAdminsPath();
-    if (!fs.existsSync(filePath)) return {};
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  // Read & Write
+
+  private leerCssAdmins(): Record<string, CssAdminEntry> {
+    return leerJsonDeArchivo<Record<string, CssAdminEntry>>(this.getCssAdminsPath(), {});
   }
 
   private leerMatchzyAdmins(): Record<string, string> {
-    const filePath = this.getMatchzyAdminsPath();
-    if (!fs.existsSync(filePath)) return {};
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    return leerJsonDeArchivo<Record<string, string>>(this.getMatchzyAdminsPath(), {});
   }
 
-  private guardarCssAdmins(data: Record<string, any>): void {
-    const filePath = this.getCssAdminsPath();
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  private guardarCssAdmins(data: Record<string, CssAdminEntry>): void {
+    guardarJsonEnArchivo(this.getCssAdminsPath(), data);
   }
 
   private guardarMatchzyAdmins(data: Record<string, string>): void {
-    const filePath = this.getMatchzyAdminsPath();
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    guardarJsonEnArchivo(this.getMatchzyAdminsPath(), data);
   }
 
+
+
+  /*
+    MÉTODOS PÚBLICOS
+  */
   agregarAdmin(steam64: string, nombre: string): void {
     this.validarNombre(nombre);
     const nombreConPrefijo = `[Admin]${nombre}`;
 
-    // CSS
     const cssAdmins = this.leerCssAdmins();
-    cssAdmins[nombreConPrefijo] = {
-      identity: steam64,
-      immunity: 100,
-      flags: ['@css/root'],
-    };
+    cssAdmins[nombreConPrefijo] = { identity: steam64, immunity: 100, flags: ['@css/root'] };
     this.guardarCssAdmins(cssAdmins);
 
-    // MatchZy
     const matchzyAdmins = this.leerMatchzyAdmins();
     matchzyAdmins[steam64] = '';
     this.guardarMatchzyAdmins(matchzyAdmins);
 
-    this.logger.log(`[Admin] Admin agregado: ${nombreConPrefijo} (${steam64})`);
+    this.logger.log(`[Admin] Agregado: ${nombreConPrefijo} (${steam64})`);
   }
 
-  listarAdmins(): { nombre: string; steam64: string }[] {
+  listarAdmins(): AdminEntry[] {
     const cssAdmins = this.leerCssAdmins();
     return Object.entries(cssAdmins).map(([nombre, data]) => ({
       nombre,
@@ -84,37 +86,28 @@ export class Cs2AdminService {
 
   editarAdmin(steam64Original: string, nuevoSteam64?: string, nuevoNombre?: string): void {
     if (nuevoNombre) this.validarNombre(nuevoNombre);
+
     const cssAdmins = this.leerCssAdmins();
     const matchzyAdmins = this.leerMatchzyAdmins();
 
-    // Buscar la entrada en CSS por steam64
     const entradaActual = Object.entries(cssAdmins).find(([_, data]) => data.identity === steam64Original);
-    if (!entradaActual) {
-      throw new Error(`Admin con steam64 ${steam64Original} no encontrado`);
-    }
+    if (!entradaActual) throw new NotFoundException(`Admin con steam64 ${steam64Original} no encontrado`);
 
     const [nombreActual, datosActuales] = entradaActual;
+    const nombreFinal = nuevoNombre ? `[Admin]${nuevoNombre}` : nombreActual;
+    const steam64Final = nuevoSteam64 ?? steam64Original;
 
-    // Construir nuevo nombre
-    const nombreBase = nuevoNombre ? `[Admin]${nuevoNombre}` : nombreActual;
-    const steam64Final = nuevoSteam64 || steam64Original;
-
-    // Borrar entrada vieja y crear nueva en CSS
     delete cssAdmins[nombreActual];
-    cssAdmins[nombreBase] = {
-      ...datosActuales,
-      identity: steam64Final,
-    };
+    cssAdmins[nombreFinal] = { ...datosActuales, identity: steam64Final };
     this.guardarCssAdmins(cssAdmins);
 
-    // Actualizar MatchZy si cambió el steam64
     if (nuevoSteam64 && nuevoSteam64 !== steam64Original) {
       delete matchzyAdmins[steam64Original];
       matchzyAdmins[steam64Final] = '';
       this.guardarMatchzyAdmins(matchzyAdmins);
     }
 
-    this.logger.log(`[Admin] Admin editado: ${nombreActual} → ${nombreBase} (${steam64Original} → ${steam64Final})`);
+    this.logger.log(`[Admin] Editado: ${nombreActual} → ${nombreFinal} (${steam64Original} → ${steam64Final})`);
   }
 
   removerAdmin(steam64: string): void {
@@ -122,9 +115,7 @@ export class Cs2AdminService {
     const matchzyAdmins = this.leerMatchzyAdmins();
 
     const entradaActual = Object.entries(cssAdmins).find(([_, data]) => data.identity === steam64);
-    if (!entradaActual) {
-      throw new Error(`Admin con steam64 ${steam64} no encontrado`);
-    }
+    if (!entradaActual) throw new NotFoundException(`Admin con steam64 ${steam64} no encontrado`);
 
     const [nombre] = entradaActual;
     delete cssAdmins[nombre];
@@ -133,11 +124,10 @@ export class Cs2AdminService {
     this.guardarCssAdmins(cssAdmins);
     this.guardarMatchzyAdmins(matchzyAdmins);
 
-    this.logger.log(`[Admin] Admin removido: ${nombre} (${steam64})`);
+    this.logger.log(`[Admin] Removido: ${nombre} (${steam64})`);
   }
 
-  obtenerTodosLosSteam64(): { steam64: string; nombre: string }[] {
-    // Leemos desde CSS que tiene nombre y steam64
+  obtenerTodosLosSteam64(): AdminEntry[] {
     return this.listarAdmins();
   }
 }
