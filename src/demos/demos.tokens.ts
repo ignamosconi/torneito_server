@@ -1,0 +1,1 @@
+export const DEMOS_SERVICE = 'IDemosService';
