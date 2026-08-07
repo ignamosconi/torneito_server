@@ -25,13 +25,6 @@ $ npm install
 $ npm run start:dev
 ```
 
-### Setup en Linux
-Dar permisos de ejecución al binario de CS2 antes de iniciar el backend:
-```bash
-$ chmod +x /ruta/al/servidor/game/bin/linuxsteamrt64/cs2
-```
-
-
 ## Comandos en partida (admins)
 Cuando un administrador está en un servidor, puede ejecutar los comandos definidos [en la documentación de MatchZy Enhanced](https://docs.sivert.io/docs/me)
 
@@ -46,6 +39,28 @@ Este repositorio fue creado por Ignacio Mosconi
 - [Github](https://github.com/ignamosconi)
 - [Portfolio](https://ignamosconi.com.ar)
 
-
 # Licencia
 Torneito is MIT Licensed.
+
+
+<br/>
+<br/>
+
+# Consideraciones a futuro
+
+## Setup en Linux
+Dar permisos de ejecución al binario de CS2 antes de iniciar el backend:
+```bash
+$ chmod +x /ruta/al/servidor/game/bin/linuxsteamrt64/cs2
+```
+
+## Configuración de CORS
+
+El visor 2D de demos consume los endpoints de demos directamente desde el browser.
+Para que funcione hay que habilitar CORS en el backend apuntando al dominio del frontend.
+
+En `main.ts`, antes de `app.listen()`:
+
+app.enableCors({
+  origin: 'https://tu-dominio-frontend.com',
+});
