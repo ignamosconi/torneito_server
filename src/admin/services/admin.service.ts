@@ -87,35 +87,23 @@ export class AdminService implements IAdminService {
     }));
   }
 
-  editarAdmin(steam64Original: string, nuevoSteam64?: string, nuevoNombre?: string): void {
-    if (nuevoNombre) this.validarNombre(nuevoNombre);
+  //El nombre se guarda solo en css, en matchzy no (lo dejamos "" al crearlo y no se modifica)
+  editarAdmin(steam64Original: string, nuevoNombre: string): void {
+    this.validarNombre(nuevoNombre);
 
     const cssAdmins = this.leerCssAdmins();
-    const matchzyAdmins = this.leerMatchzyAdmins();
 
     const entradaActual = Object.entries(cssAdmins).find(([_, data]) => data.identity === steam64Original);
     if (!entradaActual) throw new NotFoundException(`Admin con steam64 ${steam64Original} no encontrado`);
 
-    if (nuevoSteam64 && nuevoSteam64 !== steam64Original) {
-      const steam64Duplicado = Object.values(cssAdmins).some((entry) => entry.identity === nuevoSteam64);
-      if (steam64Duplicado) throw new BadRequestException(`El steam64 ${nuevoSteam64} ya está registrado como admin`);
-    }
-
     const [nombreActual, datosActuales] = entradaActual;
-    const nombreFinal = nuevoNombre ? `[ADMIN]${nuevoNombre}` : nombreActual;
-    const steam64Final = nuevoSteam64 ?? steam64Original;
+    const nombreFinal = `[ADMIN]${nuevoNombre}`;
 
     delete cssAdmins[nombreActual];
-    cssAdmins[nombreFinal] = { ...datosActuales, identity: steam64Final };
+    cssAdmins[nombreFinal] = { ...datosActuales };
     this.guardarCssAdmins(cssAdmins);
 
-    if (nuevoSteam64 && nuevoSteam64 !== steam64Original) {
-      delete matchzyAdmins[steam64Original];
-      matchzyAdmins[steam64Final] = '';
-      this.guardarMatchzyAdmins(matchzyAdmins);
-    }
-
-    this.logger.log(`[ADMIN] Editado: ${nombreActual} → ${nombreFinal} (${steam64Original} → ${steam64Final})`);
+    this.logger.log(`[ADMIN] Editado: ${nombreActual} → ${nombreFinal}`);
   }
 
   removerAdmin(steam64: string): void {

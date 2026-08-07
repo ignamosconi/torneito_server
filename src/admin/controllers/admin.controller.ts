@@ -1,7 +1,7 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Patch } from '@nestjs/common';
 import type { IAdminService } from '../interfaces/admin.service.interface';
 import { ADMIN_SERVICE } from '../admin.tokens';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { IAdminController } from '../interfaces/admin.controller.interface';
 import { AgregarAdminDto } from '../dto/agregar-admin.dto';
@@ -37,10 +37,10 @@ export class AdminController implements IAdminController {
     return this.adminService.listarAdmins();
   }
 
-  @Put(':steam64')
+  @Patch(':steam64')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Editar admin', description: 'Modifica el nombre o SteamID64 de un administrador existente.' })
-  @ApiParam({ name: 'steam64', description: 'SteamID64 actual del admin a editar', example: '76561198012345678' })
+  @ApiOperation({ summary: 'Editar admin', description: 'Modifica el nombre de un administrador existente.' })
+  @ApiParam({ name: 'steam64', description: 'SteamID64 del admin a editar', example: '76561198012345678' })
   @ApiResponse({ status: 200, description: 'Admin editado correctamente' })
   @ApiResponse({ status: 404, description: 'Admin no encontrado' })
   @ApiResponse({ status: 400, description: 'Datos inválidos en el body' })
@@ -48,8 +48,8 @@ export class AdminController implements IAdminController {
     @Param('steam64') steam64: string,
     @Body() body: EditarAdminDto,
   ): Promise<StatusDto> {
-    this.logger.log(`[PUT /admin/${steam64}] Editando admin`);
-    this.adminService.editarAdmin(steam64, body.nuevoSteam64, body.nuevoNombre);
+    this.logger.log(`[PATCH /admin/${steam64}] Editando admin`);
+    this.adminService.editarAdmin(steam64, body.nombre);
     return { status: 'success', message: `Admin ${steam64} editado correctamente` };
   }
 
