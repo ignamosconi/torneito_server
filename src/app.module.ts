@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RconModule } from './rcon/rcon.module';
 import { AdminModule } from './admin/admin.module';
 import { LifecycleModule } from './lifecycle/lifecycle.module';
+import { DemosModule } from './demos/demos.module';
 
 @Module({
   imports: [
@@ -19,6 +20,8 @@ import { LifecycleModule } from './lifecycle/lifecycle.module';
     RconModule,
     AdminModule,
     LifecycleModule,
+    DemosModule,
+    
   ],
 })
 export class AppModule {}
