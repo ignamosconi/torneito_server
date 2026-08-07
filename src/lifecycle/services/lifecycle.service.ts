@@ -255,7 +255,7 @@ export class LifecycleService implements ILifecycleService {
   }
 
   async restaurarRonda(body: RestoreRoundDto): Promise<string> {
-        if (body.roundNumber < 10) {
+    if (body.roundNumber < 10) {
       return this.rconService.executeCommand(
         //matchzy_111_0_round01.json
         `matchzy_loadbackup matchzy_${body.matchid}_${body.mapNumber}_round0${body.roundNumber}.json`, 
