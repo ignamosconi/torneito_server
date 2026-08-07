@@ -12,6 +12,7 @@ import { ILifecycleService } from '../interfaces/lifecycle.service.interface';
 import { MatchZyEventDto } from '../dto/matchzy-event.dto';
 import { eliminarArchivo, guardarJsonEnArchivo } from '../../shared/helpers/file.helper';
 import { borrarBackupsJson, borrarBackupsTxt } from '../../shared/helpers/backup.helper';
+import { RestoreRoundDto } from '../dto/restore-round.dto';
 
 @Injectable()
 export class LifecycleService implements ILifecycleService {
@@ -250,6 +251,21 @@ export class LifecycleService implements ILifecycleService {
       } else {
         this.logger.log(`[Webhook] Demo guardada, serie no terminada. Servidor se mantiene vivo.`);
       }
+    }
+  }
+
+  async restaurarRonda(body: RestoreRoundDto): Promise<string> {
+        if (body.roundNumber < 10) {
+      return this.rconService.executeCommand(
+        //matchzy_111_0_round01.json
+        `matchzy_loadbackup matchzy_${body.matchid}_${body.mapNumber}_round0${body.roundNumber}.json`, 
+        body.port,
+      );
+    } else {
+      return this.rconService.executeCommand(
+        `matchzy_loadbackup matchzy_${body.matchid}_${body.mapNumber}_round${body.roundNumber}.json`, 
+        body.port,
+      );
     }
   }
 

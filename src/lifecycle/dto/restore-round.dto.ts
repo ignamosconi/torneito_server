@@ -14,8 +14,8 @@ export class RestoreRoundDto {
   port!: number;
 
   @ApiProperty({
-    description: 'MatchID numérico interno de MatchZy (ej: 8093)',
-    example: 8093,
+    description: 'MatchID numérico interno para esta serie.',
+    example: 777,
     minimum: 1,
   })
   @IsNumber()
@@ -23,7 +23,17 @@ export class RestoreRoundDto {
   matchid!: number;
 
   @ApiProperty({
-    description: 'Número de ronda al que se quiere restaurar',
+    description: 'Número de mapa a restaurar. 0 = Primer mapa, 1 = Segundo mapa, etc.',
+    example: 2,
+    minimum: 0,
+  })
+  @IsNumber()
+  @Min(0)
+  @Max(4)
+  mapNumber!: number;
+
+  @ApiProperty({
+    description: 'Número de ronda al que se quiere restaurar. 0 = Primera ronda, 1 = Segunda ronda, etc.',
     example: 5,
     minimum: 0,
   })

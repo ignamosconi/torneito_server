@@ -90,9 +90,6 @@ export class LifecycleController implements ILifecycleController {
   @ApiResponse({ status: 400, description: 'Payload inválido' })
   async restoreRound(@Body() body: RestoreRoundDto): Promise<string> {
     this.logger.warn(`[POST /lifecycle/restore-round] Ronda ${body.roundNumber} en puerto ${body.port}`);
-    return this.rconService.executeCommand(
-        `matchzy_loadbackup matchzy_match_${body.matchid}_round_${body.roundNumber}`, 
-        body.port,
-    );
+    return this.lifecycleService.restaurarRonda(body);
   }
 }
