@@ -2,9 +2,9 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ZipFile } from 'yazl';
 import type { Response } from 'express';
 import { IDemosService } from '../interfaces/demos.service.interface';
+import { streamZipDeArchivos } from '../../shared/helpers/zip.helper';
 
 @Injectable()
 export class DemosService implements IDemosService {
@@ -57,26 +57,6 @@ export class DemosService implements IDemosService {
 
     this.logger.log(`[Demos] Enviando ZIP con ${demos.length} demo(s) de la serie ${matchid}`);
 
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="demos_${matchid}.zip"`);
-
-    const zipFile = new ZipFile();
-
-    for (const demoPath of demos) {
-        const stat = fs.statSync(demoPath);
-        zipFile.addReadStream(
-        fs.createReadStream(demoPath),
-        path.basename(demoPath),
-        { size: stat.size },
-        );
-    }
-
-    zipFile.end();
-    zipFile.outputStream.pipe(res);
-
-    await new Promise<void>((resolve, reject) => {
-        res.on('finish', resolve);
-        res.on('error', reject);
-    });
+    await streamZipDeArchivos(demos, `demos_${matchid}.zip`, res);
   }
 }

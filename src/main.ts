@@ -29,6 +29,8 @@ async function bootstrap() {
     .addTag('rcon', 'Ejecución de comandos RCON en el servidor CS2')
     .addTag('lifecycle', 'Gestión del ciclo de vida de partidos y eventos de MatchZy')
     .addTag('admin', 'Gestión de administradores del servidor')
+    .addTag('demos', 'Archivos demos de los mapas jugados en las distintas series.')
+    .addTag('stats', 'Estadísticas de mapas y series generadas por MatchZy')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

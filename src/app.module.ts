@@ -4,6 +4,7 @@ import { RconModule } from './rcon/rcon.module';
 import { AdminModule } from './admin/admin.module';
 import { LifecycleModule } from './lifecycle/lifecycle.module';
 import { DemosModule } from './demos/demos.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { DemosModule } from './demos/demos.module';
     AdminModule,
     LifecycleModule,
     DemosModule,
+    StatsModule,
     
   ],
 })
