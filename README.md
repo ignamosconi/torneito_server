@@ -16,6 +16,19 @@ El proyecto utiliza tres plugins base:
 - [MatchZy Enhanced](https://github.com/sivert-io/matchzy-Enhanced/releases)
 
 
+## Variables de entorno
+
+| Variable | Ejemplo | Descripción |
+|---|---|---|
+| `CS2_RCON_HOST` | `127.0.0.1` | IP del servidor CS2. En producción normalmente es localhost ya que el backend y el servidor corren en la misma máquina. |
+| `CS2_RCON_PORT` | `27015` | Puerto RCON por defecto. En la práctica cada servidor usa un puerto distinto que se pasa en cada request. |
+| `CS2_RCON_PASSWORD` | `contra` | Contraseña RCON. Tiene que coincidir con la que se configura en el servidor CS2. |
+| `PORT` | `3000` | Puerto donde escucha este backend NestJS. |
+| `CS2_SERVER_ROOT_DIR` | `D:\Servidor_CS2\server` | Ruta absoluta a la carpeta raíz del servidor CS2. En Linux será algo como `/opt/cs2/server`. |
+| `BACKEND_WEBHOOK_URL` | `http://localhost:3000` | URL pública o de red local de este backend. MatchZy la usa para enviar eventos y para descargar la configuración del partido. |
+| `MATCHZY_WEBHOOK_TOKEN` | `contra` | Token Bearer que MatchZy incluye en cada webhook. El backend lo valida para asegurarse de que los eventos vienen del servidor correcto. |
+| `AUTO_RESTORE_ON_MATCH_POINT` | `true` | Si está en `true`, restaura automáticamente la ronda actual cuando algún jugador hace `.tech` o `.pause` en una ronda de match point (12, 15, 18, etc.). Deshabilitarlo si los jugadores abusan de la funcionalidad. |
+
 # Comandos 
 
 ## Cómo iniciar este repositorio
