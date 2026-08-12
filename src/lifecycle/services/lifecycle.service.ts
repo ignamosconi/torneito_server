@@ -22,10 +22,11 @@ export class LifecycleService implements ILifecycleService {
     ESTADO EN MEMORIA
   */
   private readonly seriesFinalizadas = new Set<number>();
-  private readonly matchIdMap = new Map<number, string>();           // numerico → string
-  private readonly matchPortMap = new Map<number, number>();        // numerico → puerto
-  private readonly matchIdInversoMap = new Map<string, number>();  // string → numerico
-  private readonly puertosActivos = new Set<number>();            // fuente de verdad de puertos ocupados
+  private readonly matchIdMap = new Map<number, string>();                                 // numerico → string
+  private readonly matchPortMap = new Map<number, number>();                              // numerico → puerto
+  private readonly matchIdInversoMap = new Map<string, number>();                        // string → numerico
+  private readonly puertosActivos = new Set<number>();                                  // fuente de verdad de puertos ocupados
+  private readonly scoreActual = new Map<number, { team1: number; team2: number }>();  // Usado para verificar si un equipo está en match-point.
 
   constructor(
     private readonly configService: ConfigService,
@@ -68,6 +69,7 @@ export class LifecycleService implements ILifecycleService {
     if (puerto) this.puertosActivos.delete(puerto);
     this.matchIdMap.delete(matchidNumerico);
     this.matchPortMap.delete(matchidNumerico);
+    this.scoreActual.delete(matchidNumerico); //reiniciar el score
   }
 
   /* 
@@ -235,6 +237,48 @@ export class LifecycleService implements ILifecycleService {
     if (event === 'series_end') {
       this.logger.log(`--- [EVENTO] SERIE FINALIZADA (MatchID: ${matchId}) ---`);
       this.marcarSerieTerminada(matchidNumerico);
+    }
+
+    /*
+      Si algún equipo está en match-point (ronda 12, 15, 18, etc) y se hace un .tech y el equipo en match point gana la ronda, jamás
+      va a ejecutarse el .tech, asique esta lógica detecta si hay un .tech en match point y reinicia la ronda instantáneamente.
+    */
+    if (event === 'round_end' && eventData.team1 && eventData.team2) {
+      this.scoreActual.set(matchidNumerico, {
+        team1: eventData.team1.score,
+        team2: eventData.team2.score,
+      });
+      this.logger.log(`[Score] ${matchId} → team1: ${eventData.team1.score} | team2: ${eventData.team2.score}`);
+    }
+
+    if (event === 'match_paused') {
+      const autoRestore = this.configService.get<string>('AUTO_RESTORE_ON_MATCH_POINT') === 'true';
+      if (!autoRestore) {
+        this.logger.log(`[AutoRestore] Deshabilitado por configuración`);
+        return;
+      }
+
+      const score = this.scoreActual.get(matchidNumerico);
+      if (!score) {
+        this.logger.warn(`[AutoRestore] No hay score registrado para matchid ${matchidNumerico}`);
+        return;
+      }
+
+      const esMatchPoint = (s: number) => s >= 12 && s % 3 === 0;
+      if (!esMatchPoint(score.team1) && !esMatchPoint(score.team2)) {
+        this.logger.log(`[AutoRestore] Score ${score.team1}-${score.team2}: no es match point, no se restaura`);
+        return;
+      }
+
+      // Obtenemos el número de ronda actual — es el score total + 1
+      const rondaActual = score.team1 + score.team2 + 1;
+      const mapNumber = eventData.map_number ?? 0;
+      const roundStr = rondaActual < 10 ? `0${rondaActual}` : `${rondaActual}`;
+      const backupFile = `matchzy_${matchidNumerico}_${mapNumber}_round${roundStr}.json`;
+
+      this.logger.warn(`[AutoRestore] Match point detectado (${score.team1}-${score.team2}). Restaurando ronda ${rondaActual} desde ${backupFile}`);
+
+      await this.rconService.executeCommand(`matchzy_loadbackup ${backupFile}`, gamePort);
     }
 
     if (event === 'demo_recording_stop') {
