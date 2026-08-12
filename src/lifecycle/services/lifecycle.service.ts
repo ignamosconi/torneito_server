@@ -27,12 +27,48 @@ export class LifecycleService implements ILifecycleService {
   private readonly matchIdInversoMap = new Map<string, number>();                        // string → numerico
   private readonly puertosActivos = new Set<number>();                                  // fuente de verdad de puertos ocupados
   private readonly scoreActual = new Map<number, { team1: number; team2: number }>();  // Usado para verificar si un equipo está en match-point.
+  private readonly heartbeatIntervals = new Map<number, NodeJS.Timeout>();            // puerto → interval
 
   constructor(
     private readonly configService: ConfigService,
     @Inject(RCON_SERVICE) private readonly rconService: IRconService,
     @Inject(ADMIN_SERVICE) private readonly adminService: IAdminService,
   ) {}
+
+  /*
+    HEARTBEAT - Nos permite detectar si un servidor sigue activo o no.
+  */
+  private iniciarHeartbeat(matchidNumerico: number, gamePort: number): void {
+    // Evitar duplicados si se llama dos veces
+    if (this.heartbeatIntervals.has(gamePort)) return;
+
+    let fallosConsecutivos = 0;
+    const maxFallos = 3; // 3 fallos × 10s = 30s antes de liberar
+
+    const interval = setInterval(async () => {
+      try {
+        const respuesta = await this.rconService.executeCommand('echo heartbeat', gamePort);
+        if (respuesta.includes('Error de conexión RCON')) {
+          fallosConsecutivos++;
+          this.logger.warn(`[Heartbeat] Fallo ${fallosConsecutivos}/${maxFallos} en puerto ${gamePort}`);
+        } else {
+          fallosConsecutivos = 0; // reset si responde
+        }
+      } catch (_) {
+        fallosConsecutivos++;
+        this.logger.warn(`[Heartbeat] Fallo ${fallosConsecutivos}/${maxFallos} en puerto ${gamePort}`);
+      }
+
+      if (fallosConsecutivos >= maxFallos) {
+        this.logger.error(`[Heartbeat] Servidor en puerto ${gamePort} no responde. Liberando recursos...`);
+        clearInterval(interval);
+        this.heartbeatIntervals.delete(gamePort);
+        this.removerMapeoId(matchidNumerico);
+      }
+    }, 10000); // cada 10 segundos
+
+    this.heartbeatIntervals.set(gamePort, interval);
+  }
 
   /* 
     ESTADO DE SERIE
@@ -70,6 +106,15 @@ export class LifecycleService implements ILifecycleService {
     this.matchIdMap.delete(matchidNumerico);
     this.matchPortMap.delete(matchidNumerico);
     this.scoreActual.delete(matchidNumerico); //reiniciar el score
+
+    //Frenamos el hartbeat
+    const interval = this.heartbeatIntervals.get(puerto!);
+    if (interval) {
+      clearInterval(interval);
+      this.heartbeatIntervals.delete(puerto!);
+      this.logger.log(`[Heartbeat] Detenido para puerto ${puerto}`);
+    }
+
   }
 
   /* 
@@ -218,6 +263,11 @@ export class LifecycleService implements ILifecycleService {
         await this.rconService.executeCommand(`matchzy_addplayer ${admin.steam64} spec ${admin.nombre}`, gamePort);
         this.logger.log(`[RCON Inyección] Spec agregado: ${admin.nombre} (${admin.steam64})`);
       }
+
+      //Después de iniciar toda la configuración, damos inicio al heartbeat del servidor.
+      if (matchidNumerico !== undefined) {
+        this.iniciarHeartbeat(matchidNumerico, gamePort);
+      }
     } catch (error) {
       this.logger.error(`[-] Error crítico en inyección RCON: ${error}`);
     }
@@ -273,12 +323,13 @@ export class LifecycleService implements ILifecycleService {
       // Obtenemos el número de ronda actual — es el score total + 1
       const rondaActual = score.team1 + score.team2 + 1;
       const mapNumber = eventData.map_number ?? 0;
-      const roundStr = rondaActual < 10 ? `0${rondaActual}` : `${rondaActual}`;
-      const backupFile = `matchzy_${matchidNumerico}_${mapNumber}_round${roundStr}.json`;
-
-      this.logger.warn(`[AutoRestore] Match point detectado (${score.team1}-${score.team2}). Restaurando ronda ${rondaActual} desde ${backupFile}`);
-
-      await this.rconService.executeCommand(`matchzy_loadbackup ${backupFile}`, gamePort);
+      this.logger.warn(`[AutoRestore] Match point detectado (${score.team1}-${score.team2}). Restaurando ronda ${rondaActual}`);
+      await this.restaurarRonda({
+        port: gamePort,
+        matchid: matchidNumerico,
+        mapNumber: mapNumber,
+        roundNumber: (rondaActual - 1), //Si se está jugando la 15, quiero restaurar la 14.
+      });
     }
 
     if (event === 'demo_recording_stop') {

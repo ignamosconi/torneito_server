@@ -21,11 +21,14 @@ export class RconService implements IRconService {
       // Timeout de 1500ms: menor que el intervalo de polling (2000ms)
       // Evita que conexiones fallidas se acumulen en el event loop
       rconClient = await Rcon.connect({ host, port, password, timeout: 1500 });
+      rconClient.on('error', (err) => {
+        this.logger.warn(`[RCON] Error de socket en puerto ${port}: ${err.message}`);
+      });
 
       this.logger.log(`[RCON] Enviando: "${command}"`);
       return await rconClient.send(command);
     } catch (error) {
-      this.logger.error(`[RCON] Error en puerto ${port}: ${error}`);
+      this.logger.warn(`[RCON] Error en puerto ${port}: ${error}`);
       return `Error de conexión RCON en puerto ${port}. ¿El servidor está apagado? Detalle: ${error}`;
     } finally {
       if (rconClient) await rconClient.end();
