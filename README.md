@@ -47,6 +47,14 @@ Cuando un administrador está en un servidor, puede ejecutar los comandos defini
 ```
 
 
+## Comandos de consola de servidor
+Desde la consola que se abre cuando se levanta un servidor, pueden ejecutarse los siguientes comandos de interés:
+
+```bash
+matchzy_loadbackup matchzy_777_0_round05.json  → Levantar la id, nro mapa, nro ronda especificados.
+matchzy_listbackups 777  → Ver los backups existentes para la partida de id especificada. Recordar que se borran inmediatamente después de que termina un partido.
+```
+
 # Autor
 Este repositorio fue creado por Ignacio Mosconi
 - [Github](https://github.com/ignamosconi)
